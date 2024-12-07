@@ -12,8 +12,8 @@ class ExpectationMaximization:
     
     def __init__(self, array, K, epsilon):
         # Input random variables
-        self.x = np.array(array)
-        self.n = len(self.x)
+        self.x = np.array(array).reshape(1, -1)
+        self.n = len(self.x[0])
         
         # Converging condition
         self.epsilon = epsilon
@@ -38,7 +38,7 @@ class ExpectationMaximization:
         
         # Initiate holder for overall log-likelihood
         self.overall_LL = []
-        self.delta_overall_LL = 1
+        self.delta_overall_LL = 11
         
         
     def activate_initial_values(self):
@@ -49,7 +49,7 @@ class ExpectationMaximization:
         part_len = int(self.n / self.K)
         
         for k in range(self.K):
-            x_part = self.x[k * part_len : (k+1) * part_len]
+            x_part = self.x[0, k * part_len : (k+1) * part_len]
             
             mu = np.mean(x_part)
             var = np.var(x_part) / self.K
@@ -58,59 +58,80 @@ class ExpectationMaximization:
             self.param_sets[k] = [mu, var, pi]
             
     def update_res(self):
-        res_numerator_sets = np.zeros([self.K, self.n])
-        res_denomerator = np.zeros(self.n)
+        # NEW
+        mu = self.param_sets[:, 0].reshape(-1, 1)  # mu = [[µ1], [µ2]]
+        var = self.param_sets[:, 1].reshape(-1, 1)
+        pi = self.param_sets[:, 2].reshape(-1, 1)
         
-        for k in range(self.K):
-            mu = self.param_sets[k][0]
-            var = self.param_sets[k][1]
-            pi = self.param_sets[k][2]
-            
-            L = (1 / np.sqrt(2 * np.pi * var) * 
-                 np.exp(- (self.x - mu)**2 / (2 * var))
-                 )
-            
-            weighted_L = pi * L
-            
-            res_numerator_sets[k] = weighted_L
-            
-            res_denomerator += weighted_L
-            
-        self.res_sets = res_numerator_sets / res_denomerator
+        
+        L = (1 / np.sqrt(2 * np.pi * var) * 
+             np.exp(- (self.x - mu)**2 / (2 * var))
+             )
+        
+        weighted_L = pi * L  # res_numerator
+        
+        res_denomerator = np.sum(weighted_L, axis=0)
+        
+        # Update responsibility
+        self.res_sets = weighted_L / res_denomerator
+        
+        # Add current overall log-likelihood        
         self.overall_LL.append(sum(np.log(res_denomerator)))
+        
             
     def update_param_sets(self):
-        for k in range(self.K):
-            # Update mu
-            self.param_sets[k][0] = (
-                sum(self.res_sets[k] * self.x) /
-                sum(self.res_sets[k])
-                )
+        self.param_sets[:, 0] = (
+            np.sum(self.res_sets * self.x, axis = 1 ) /
+            np.sum(self.res_sets, axis=1 )
+            )
+        
+        self.param_sets[:, 1] = (
+            np.sum(self.res_sets * ((self.x - self.param_sets[:, 0].reshape(-1, 1))) ** 2, 
+                   axis=1) / 
+            np.sum(self.res_sets, 
+                   axis=1)
+            )
+        
+        self.param_sets[:, 2] = (
+            np.sum(self.res_sets, axis=1) / self.n
+            )
+        
+        # OLD
+        # for k in range(self.K):
+        #     # Update mu
+        #     self.param_sets[k][0] = (
+        #         sum(self.res_sets[k] * self.x) /
+        #         sum(self.res_sets[k])
+        #         )
             
-            # Update var
-            self.param_sets[k][1] = (
-                sum(self.res_sets[k] * ((self.x - self.param_sets[k][0])) ** 2) / 
-                sum(self.res_sets[k])
-                )
+        #     # Update var
+        #     self.param_sets[k][1] = (
+        #         sum(self.res_sets[k] * ((self.x - self.param_sets[k][0])) ** 2) / 
+        #         sum(self.res_sets[k])
+        #         )
             
-            # Update pi
-            self.param_sets[k][2] = (
-                sum(self.res_sets[k]) /
-                self.n
-                )
+        #     # Update pi
+        #     self.param_sets[k][2] = (
+        #         sum(self.res_sets[k]) /
+        #         self.n
+        #         )
     
     def update_delta_overall_LL(self):
         if len(self.overall_LL) >= 2:
             self.delta_overall_LL = self.overall_LL[-1] - self.overall_LL[-2]
 
     def run(self):
+        
+        iteration = 0
 
         while self.delta_overall_LL >= self.epsilon:
             self.update_res()
             self.update_param_sets()
             self.update_delta_overall_LL()
             
-            if len(self.overall_LL) > 200:
+            iteration += 1
+            
+            if iteration > 200:
                 break
             
         

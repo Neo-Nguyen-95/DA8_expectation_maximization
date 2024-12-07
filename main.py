@@ -15,12 +15,10 @@ em = ExpectationMaximization(array=df['ngoai_ngu'],
                              K=2,
                              epsilon=1)
 
-
-
 em.run()
 
 em.param_sets
-
+em.overall_LL
 
 sns.lineplot(data = em.overall_LL)
 plt.show()
