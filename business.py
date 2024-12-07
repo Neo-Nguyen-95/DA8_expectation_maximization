@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 # %% CLASS
 class ExpectationMaximization:
@@ -12,6 +13,9 @@ class ExpectationMaximization:
     
     def __init__(self, array, K, epsilon):
         # Input random variables
+        # [
+        # [x1, x2, ..., xn]
+        # ]
         self.x = np.array(array).reshape(1, -1)
         self.n = len(self.x[0])
         
@@ -40,6 +44,15 @@ class ExpectationMaximization:
         self.overall_LL = []
         self.delta_overall_LL = 11
         
+    def print_basic_info(self):
+        mean = np.mean(self.x[0])
+        var = np.var(self.x[0])
+        
+        print(f"Number of student: {self.n}")
+        print(f"Mean: {mean:.2f}")
+        print(f"Variance: {var:.2f}")
+        
+        
         
     def activate_initial_values(self):
         """
@@ -58,7 +71,6 @@ class ExpectationMaximization:
             self.param_sets[k] = [mu, var, pi]
             
     def update_res(self):
-        # NEW
         mu = self.param_sets[:, 0].reshape(-1, 1)  # mu = [[µ1], [µ2]]
         var = self.param_sets[:, 1].reshape(-1, 1)
         pi = self.param_sets[:, 2].reshape(-1, 1)
@@ -96,25 +108,6 @@ class ExpectationMaximization:
             np.sum(self.res_sets, axis=1) / self.n
             )
         
-        # OLD
-        # for k in range(self.K):
-        #     # Update mu
-        #     self.param_sets[k][0] = (
-        #         sum(self.res_sets[k] * self.x) /
-        #         sum(self.res_sets[k])
-        #         )
-            
-        #     # Update var
-        #     self.param_sets[k][1] = (
-        #         sum(self.res_sets[k] * ((self.x - self.param_sets[k][0])) ** 2) / 
-        #         sum(self.res_sets[k])
-        #         )
-            
-        #     # Update pi
-        #     self.param_sets[k][2] = (
-        #         sum(self.res_sets[k]) /
-        #         self.n
-        #         )
     
     def update_delta_overall_LL(self):
         if len(self.overall_LL) >= 2:
@@ -131,15 +124,26 @@ class ExpectationMaximization:
             
             iteration += 1
             
-            if iteration > 200:
+            if iteration > 150:
                 break
             
+    def assign_group(self):
+        group = np.array(range(self.K))
+        assignment = []
+        
+        # normalize responsibility
+        res_total = np.sum(self.res_sets, axis=0)
+        res_normalized = self.res_sets / res_total
+        
+        for i in range(self.n):
+            assign = np.random.choice(group, p = res_normalized[:, i])
+            assignment.append(assign)
+            
+        df_divided = pd.DataFrame({
+            'score': self.x[0],
+            'group': assignment
+            })
+        
+        return df_divided
         
             
-        
-
-
-
-
-
-        
