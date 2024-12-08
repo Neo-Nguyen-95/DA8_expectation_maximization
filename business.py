@@ -124,7 +124,7 @@ class ExpectationMaximization:
             
             iteration += 1
             
-            if iteration > 150:
+            if iteration > 200:
                 break
             
     def assign_group(self):
