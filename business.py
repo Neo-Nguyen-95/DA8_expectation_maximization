@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-# %% CLASS
+# %% EXPECTATION MAXIMIZATION
 class ExpectationMaximization:
     """
     Goal:
@@ -146,4 +146,33 @@ class ExpectationMaximization:
         
         return df_divided
         
-            
+# %% WELCH'S T TEST
+class WelchTTest:
+    def __init__(self, array1, array2):
+        self.array1 = np.array(array1)
+        self.array2 = np.array(array2)
+        
+        self.n1 = len(self.array1)
+        self.mu1 = self.array1.mean()
+        self.sd1 = self.array1.std(ddof=1)
+        
+        self.n2 = len(self.array2)
+        self.mu2 = self.array2.mean()
+        self.sd2 = self.array2.std(ddof=1)
+        
+    def get_df(self):
+        degree_freedom = (
+            ((self.sd1 ** 2 / self.n1) + (self.sd2 ** 2 / self.n2)) ** 2 /
+            ((self.sd1 ** 2 / self.n1)**2/(self.n1-1) + (self.sd2 ** 2 / self.n2)**2/(self.n2-1))
+            )
+        
+        return degree_freedom
+    
+    def get_T(self):
+        T = ((self.mu1 - self.mu2) / 
+             np.sqrt(self.sd1 ** 2 / self.n1 + self.sd2 ** 2 / self.n2)
+             )
+        
+        return T
+        
+         
